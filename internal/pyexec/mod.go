@@ -13,13 +13,12 @@ import (
 	"time"
 )
 
-// status представляет состояние процесса
 type status int
 
 const (
-	statusCreated status = iota // процесс создан, но не запущен
-	statusRunning               // процесс запущен и работает
-	statusStopped               // процесс остановлен
+	statusCreated status = iota
+	statusRunning
+	statusStopped
 )
 
 // PyProcess управляет выполнением Python-скрипта в виртуальном окружении
@@ -51,7 +50,6 @@ func NewPyProcess(workingDir string, opts ...Option) (*PyProcess, error) {
 	}
 	p := &PyProcess{
 		workingDir: absWorkingDir,
-		venv:       filepath.Join(absWorkingDir, "venv"),
 		script:     filepath.Join(absWorkingDir, "main.py"),
 		status:     statusCreated,
 		stdout:     os.Stdout,
@@ -152,17 +150,30 @@ func (p *PyProcess) Start() error {
 	if _, err := os.Stat(p.script); os.IsNotExist(err) {
 		return fmt.Errorf("скрипт не найден: %s", p.script)
 	}
-	var pythonPath string
+	var python string
 	if runtime.GOOS == "windows" {
-		pythonPath = filepath.Join(p.venv, "Scripts", "python.exe")
+		if p.venv != "" {
+			python = filepath.Join(p.venv, "Scripts", "python.exe")
+		} else {
+			python = filepath.Join(p.venv, "bin", "python")
+		}
 	} else {
-		pythonPath = filepath.Join(p.venv, "bin", "python")
+		if p.venv != "" {
+			python = filepath.Join(p.venv, "bin", "python")
+		} else {
+			python = filepath.Join(p.venv, "python3")
+		}
 	}
-	if _, err := os.Stat(pythonPath); os.IsNotExist(err) {
-		return fmt.Errorf("python в venv не найден: %s", pythonPath)
+
+	if _, err := os.Stat(python); os.IsNotExist(err) {
+		return fmt.Errorf("python не найден: %s", python)
 	}
 	args := append([]string{p.script}, p.args...)
-	p.cmd = exec.CommandContext(p.ctx, pythonPath, args...)
+	if p.ctx != nil {
+		p.cmd = exec.CommandContext(p.ctx, python, args...)
+	} else {
+		p.cmd = exec.Command(python, args...)
+	}
 	p.cmd.Dir = p.workingDir
 	p.cmd.Stdout = p.stdout
 	p.cmd.Stderr = p.stderr
@@ -190,21 +201,17 @@ func (p *PyProcess) Stop() error {
 	}()
 	select {
 	case err := <-done:
-		// Процесс завершился самостоятельно
 		p.status = statusStopped
 		return err
 	case <-time.After(5 * time.Second):
-		// Если процесс не завершился, отправляем SIGTERM (более мягкий сигнал)
 		if err := p.cmd.Process.Signal(syscall.SIGTERM); err != nil {
 			return fmt.Errorf("не удалось отправить SIGTERM: %w", err)
 		}
-		// Даем дополнительное время на обработку SIGTERM
 		select {
 		case err := <-done:
 			p.status = statusStopped
 			return err
 		case <-time.After(3 * time.Second):
-			// 4. Если все еще не завершился, применяем SIGKILL
 			if err := p.cmd.Process.Signal(syscall.SIGKILL); err != nil {
 				return fmt.Errorf("не удалось отправить SIGKILL: %w", err)
 			}

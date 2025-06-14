@@ -29,8 +29,8 @@ func SequenceDiff[V Number](s1 []V, s2 []V, shift int) []float64 {
 
 func ZScoreNormalize[V Number](s []V, period int) []float64 {
 	n := len(s)
-	if n < 2 {
-		panic("ZScoreNormalize: slice length is less than 2")
+	if n < period {
+		panic("ZScoreNormalize: slice length is less than period")
 	}
 	normalized := make([]float64, n)
 	for i := 0; i < n; i++ {
@@ -57,8 +57,8 @@ func ZScoreNormalize[V Number](s []V, period int) []float64 {
 
 func MinusOneOneNormalize[V Number](s []V, period int) []float64 {
 	n := len(s)
-	if n < 2 {
-		panic("MinusOneOneNormalize: slice length is less than 2")
+	if n < period {
+		panic("MinusOneOneNormalize: slice length is less than period")
 	}
 	normalized := make([]float64, n)
 	for i := 0; i < n; i++ {
@@ -77,8 +77,8 @@ func MinusOneOneNormalize[V Number](s []V, period int) []float64 {
 
 func ZeroOneNormalize[V Number](s []V, period int) []float64 {
 	n := len(s)
-	if n < 2 {
-		panic("ZeroOneNormalize: slice length is less than 2")
+	if n < period {
+		panic("ZeroOneNormalize: slice length is less than period")
 	}
 	normalized := make([]float64, n)
 	for i := 0; i < n; i++ {

@@ -13,7 +13,7 @@ type SyncBuffer[T any] struct {
 	once     sync.Once
 }
 
-func NewCircularBuffer[T any](cap int) *SyncBuffer[T] {
+func NewSyncBuffer[T any](cap int) *SyncBuffer[T] {
 	overflow := cap / 10
 	if overflow < 10 {
 		overflow = 10
