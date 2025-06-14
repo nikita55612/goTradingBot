@@ -1,4 +1,4 @@
-package types
+package trading
 
 import (
 	"sync"
@@ -56,5 +56,27 @@ func (o *Order) Clone() *Order {
 		ID:        o.ID,
 		Symbol:    o.Symbol,
 		IsClosed:  o.IsClosed,
+	}
+}
+
+type OrderRequest struct {
+	LinkId  string        `json:"linkId"`
+	Tag     string        `json:"tag"`
+	Order   *Order        `json:"order"`
+	Delay   time.Duration `json:"-"`
+	Timeout time.Duration `json:"-"`
+}
+
+func (r *OrderRequest) Clone() *OrderRequest {
+	var clonedOrder *Order
+	if r.Order != nil {
+		clonedOrder = r.Order.Clone()
+	}
+	return &OrderRequest{
+		LinkId:  r.LinkId,
+		Tag:     r.Tag,
+		Order:   clonedOrder,
+		Delay:   r.Delay,
+		Timeout: r.Timeout,
 	}
 }
