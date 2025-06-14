@@ -16,8 +16,8 @@ type Candle struct {
 
 type CandleStreamData struct {
 	Candle   Candle
-	Confirm  bool
 	Interval Interval
+	Confirm  bool
 }
 
 func (c *Candle) AsArr() *[7]string {
