@@ -3,8 +3,6 @@ package trading
 import (
 	"sync"
 	"time"
-
-	"github.com/google/uuid"
 )
 
 type Order struct {
@@ -78,7 +76,6 @@ type OrderRequest struct {
 
 func NewOrderRequest(order *Order, opts ...OrderRequestOption) *OrderRequest {
 	r := &OrderRequest{
-		LinkId:       uuid.NewString(),
 		Order:        order,
 		PlaceTimeout: 2 * time.Second,
 		CloseTimeout: 1 * time.Minute,
@@ -91,6 +88,12 @@ func NewOrderRequest(order *Order, opts ...OrderRequestOption) *OrderRequest {
 }
 
 type OrderRequestOption func(*OrderRequest)
+
+func WithLinkId(linkId string) OrderRequestOption {
+	return func(r *OrderRequest) {
+		r.LinkId = linkId
+	}
+}
 
 func WithTag(tag string) OrderRequestOption {
 	return func(r *OrderRequest) {

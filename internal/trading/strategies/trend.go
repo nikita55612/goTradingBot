@@ -4,13 +4,16 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math"
 	"sync/atomic"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/nikita55612/goTradingBot/internal/pkg/cdl"
 	"github.com/nikita55612/goTradingBot/internal/trading"
 	"github.com/nikita55612/goTradingBot/internal/trading/predict"
 	"github.com/nikita55612/goTradingBot/internal/utils/numeric"
+	"github.com/nikita55612/goTradingBot/internal/utils/seqs"
 )
 
 type TrendStrategy struct {
@@ -33,10 +36,10 @@ type TrendStrategy struct {
 	confirmHandlerChan chan *cdl.Candle
 	backgroundChan     chan *cdl.Candle
 
-	balance   float64
-	longRatio float64
+	currencyVolume float64
+	longRatio      float64
 
-	// orderLog        *seqs.OrderedMap[string, *trading.Order]
+	orderLog        *seqs.OrderedMap[string, *trading.Order]
 	orderExecQtyLog map[string]float64
 	qtyPosition     atomic.Pointer[float64]
 
@@ -54,18 +57,18 @@ type TrendStrategy struct {
 func NewTrendStrategy(
 	symbol string,
 	interval cdl.Interval,
-	balance float64,
+	currencyVolume float64,
 	longRatio float64,
 	limitOrderOffset float64,
 ) *TrendStrategy {
 	s := &TrendStrategy{
 		symbol:           symbol,
 		interval:         interval,
-		balance:          balance,
+		currencyVolume:   currencyVolume,
 		longRatio:        longRatio,
 		limitOrderOffset: limitOrderOffset,
 		trendPredictor:   predict.NewTrendPredictor(interval),
-		// orderLog:         seqs.NewOrderedMap[string, *trading.Order](1000),
+		orderLog:         seqs.NewOrderedMap[string, *trading.Order](1000),
 	}
 	return s
 }
@@ -211,13 +214,7 @@ func (s *TrendStrategy) background() {
 		}
 	}()
 	for candle := range s.backgroundChan {
-		// fmt.Printf("background: %s: %+v\n", s.symbol, candle)
-
 		s.lastPrice.Store(&candle.C)
-
-		// fmt.Printf("background: lastPrice: %s: %f\n", s.symbol, *s.lastPrice.Load())
-		// fmt.Printf("background: limitCeilPrice: %s: %f\n", s.symbol, *s.limitCeilPrice.Load())
-		// fmt.Printf("background: limitFloorPrice: %s: %f\n", s.symbol, *s.limitFloorPrice.Load())
 	}
 }
 
@@ -237,5 +234,41 @@ func (s *TrendStrategy) confirmHandler() {
 		}
 		fmt.Printf("%s Prediction: %v\n", s.symbol, p)
 
+		if p[1] == 0 {
+			continue
+		}
+
+		qtyVolume := s.currencyVolume / *s.lastPrice.Load()
+
+		var directedQty float64
+		if p[1] > .5 {
+			if p[0] > .5 {
+				directedQty = qtyVolume * s.longRatio
+			} else {
+				directedQty = -qtyVolume * (1 - s.longRatio)
+			}
+		}
+
+		qty := -*s.qtyPosition.Load() + directedQty
+		qty = numeric.RoundFloat(qty, s.qtyPrecision)
+		if math.Abs(qty**s.lastPrice.Load()) < s.minOrderAmt {
+			log.Printf("qty less than minimum limit: %s", err)
+			continue
+		}
+
+		var price float64
+		if qty > 0 {
+			price = *s.limitCeilPrice.Load()
+		} else {
+			price = *s.limitFloorPrice.Load()
+		}
+
+		order := trading.NewOrder(s.symbol, qty, &price)
+		linkId := uuid.NewString()
+		s.orderLog.Set(linkId, order)
+		s.orderRequestChan <- trading.NewOrderRequest(
+			order,
+			trading.WithLinkId(linkId),
+		)
 	}
 }
