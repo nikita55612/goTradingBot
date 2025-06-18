@@ -3,6 +3,8 @@ package trading
 import (
 	"sync"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type Order struct {
@@ -20,7 +22,7 @@ type Order struct {
 	IsClosed   bool     `json:"isClosed"`  // Флаг завершенности
 }
 
-func CreateOrder(symbol string, qty float64, price *float64) *Order {
+func NewOrder(symbol string, qty float64, price *float64) *Order {
 	return &Order{
 		Symbol:    symbol,
 		Qty:       qty,
@@ -59,12 +61,65 @@ func (o *Order) Clone() *Order {
 	}
 }
 
+type OrderUpdate struct {
+	LinkId string `json:"linkId"`
+	Order  *Order `json:"order"`
+}
+
 type OrderRequest struct {
-	LinkId  string        `json:"linkId"`
-	Tag     string        `json:"tag"`
-	Order   *Order        `json:"order"`
-	Delay   time.Duration `json:"-"`
-	Timeout time.Duration `json:"-"`
+	LinkId       string              `json:"linkId"`
+	Tag          string              `json:"tag"`
+	Order        *Order              `json:"order"`
+	Delay        time.Duration       `json:"-"`
+	PlaceTimeout time.Duration       `json:"-"`
+	CloseTimeout time.Duration       `json:"-"`
+	Reply        chan<- *OrderUpdate `json:"-"`
+}
+
+func NewOrderRequest(order *Order, opts ...OrderRequestOption) *OrderRequest {
+	r := &OrderRequest{
+		LinkId:       uuid.NewString(),
+		Order:        order,
+		PlaceTimeout: 2 * time.Second,
+		CloseTimeout: 1 * time.Minute,
+	}
+	for _, option := range opts {
+		option(r)
+	}
+	return r
+
+}
+
+type OrderRequestOption func(*OrderRequest)
+
+func WithTag(tag string) OrderRequestOption {
+	return func(r *OrderRequest) {
+		r.Tag = tag
+	}
+}
+
+func WithDelay(d time.Duration) OrderRequestOption {
+	return func(r *OrderRequest) {
+		r.Delay = d
+	}
+}
+
+func WithPlaceTimeout(d time.Duration) OrderRequestOption {
+	return func(r *OrderRequest) {
+		r.PlaceTimeout = d
+	}
+}
+
+func WithCloseTimeout(d time.Duration) OrderRequestOption {
+	return func(r *OrderRequest) {
+		r.CloseTimeout = d
+	}
+}
+
+func WithReply(reply chan<- *OrderUpdate) OrderRequestOption {
+	return func(r *OrderRequest) {
+		r.Reply = reply
+	}
 }
 
 func (r *OrderRequest) Clone() *OrderRequest {
@@ -73,10 +128,12 @@ func (r *OrderRequest) Clone() *OrderRequest {
 		clonedOrder = r.Order.Clone()
 	}
 	return &OrderRequest{
-		LinkId:  r.LinkId,
-		Tag:     r.Tag,
-		Order:   clonedOrder,
-		Delay:   r.Delay,
-		Timeout: r.Timeout,
+		LinkId:       r.LinkId,
+		Tag:          r.Tag,
+		Order:        clonedOrder,
+		Delay:        r.Delay,
+		PlaceTimeout: r.PlaceTimeout,
+		CloseTimeout: r.CloseTimeout,
+		Reply:        r.Reply,
 	}
 }

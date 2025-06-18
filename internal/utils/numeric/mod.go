@@ -125,7 +125,7 @@ func CalculateSlopeAngle(y []float64, mult float64) float64 {
 // Пример: [[1,2],[3,4]] -> [[1,3],[2,4]]
 func TransposeMatrix[V Number](m [][]V) [][]V {
 	if len(m) == 0 {
-		panic("TransposeMatrix: empty rows")
+		panic("empty rows")
 	}
 	rows, cols := len(m), len(m[0])
 	result := make([][]V, cols)

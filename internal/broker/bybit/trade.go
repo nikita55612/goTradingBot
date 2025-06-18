@@ -30,12 +30,13 @@ func (c *Client) PlaceOrder(symbol string, qty float64, price *float64) (string,
 		params["orderType"] = "Limit"
 	}
 	jsonData, _ := json.Marshal(params)
-	fullURL := fmt.Sprintf("%s%s", c.baseURL, "/v5/order/create")
-	req := httpx.Post(fullURL).WithData(jsonData)
+	path := fmt.Sprintf("%s%s", c.baseURL, "/v5/order/create")
+	req := httpx.Post(path).WithData(jsonData)
 	var placeOrderResult models.PlaceOrderResult
 	if err := c.callAPI(req, string(jsonData), &placeOrderResult); err != nil {
 		return "", err.(*Error).SetEndpoint("PlaceOrder")
 	}
+
 	return placeOrderResult.OrderId, nil
 }
 
@@ -46,12 +47,13 @@ func (c *Client) CancelOrder(orderId string) (string, error) {
 	query.Set("category", c.category)
 	query.Set("orderId", orderId)
 	queryString := query.Encode()
-	fullURL := fmt.Sprintf("%s%s?%s", c.baseURL, "/v5/order/cancel", queryString)
-	req := httpx.Post(fullURL)
+	path := fmt.Sprintf("%s%s?%s", c.baseURL, "/v5/order/cancel", queryString)
+	req := httpx.Post(path)
 	var cancelOrderResult models.CancelOrderResult
 	if err := c.callAPI(req, queryString, &cancelOrderResult); err != nil {
 		return "", err.(*Error).SetEndpoint("CancelOrder")
 	}
+
 	return cancelOrderResult.OrderId, nil
 }
 
@@ -62,8 +64,8 @@ func (c *Client) GetOrderHistoryDetail(orderId string) (*models.OrderHistoryDeta
 	query.Set("category", c.category)
 	query.Set("orderId", orderId)
 	queryString := query.Encode()
-	fullURL := fmt.Sprintf("%s%s?%s", c.baseURL, "/v5/order/history", queryString)
-	req := httpx.Get(fullURL)
+	path := fmt.Sprintf("%s%s?%s", c.baseURL, "/v5/order/history", queryString)
+	req := httpx.Get(path)
 	var orderHistoryResult models.OrderHistoryResult
 	if err := c.callAPI(req, queryString, &orderHistoryResult); err != nil {
 		return nil, err.(*Error).SetEndpoint("GetOrderHistoryDetail")
@@ -72,5 +74,6 @@ func (c *Client) GetOrderHistoryDetail(orderId string) (*models.OrderHistoryDeta
 		err := fmt.Errorf("order with id %s not found", orderId)
 		return nil, NewError(InternalErrorT, err).SetEndpoint("GetOrderHistoryDetail")
 	}
+
 	return &orderHistoryResult.List[0], nil
 }

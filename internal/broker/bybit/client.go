@@ -52,7 +52,7 @@ func NewClient(apiKey, apiSecret string, opts ...Option) *Client {
 		apiKey:     apiKey,
 		apiSecret:  apiSecret,
 		recvWindow: 5000,
-		category:   "spot",
+		category:   "linear",
 		timeout:    5 * time.Second,
 	}
 	for _, option := range opts {
@@ -63,15 +63,15 @@ func NewClient(apiKey, apiSecret string, opts ...Option) *Client {
 
 func NewClientFromEnv(opts ...Option) *Client {
 	if err := godotenv.Load(); err != nil {
-		log.Fatalf("%s: NewClientFromEnv: ошибка загрузки .env файла", errorTitel)
+		log.Fatalf("%s: NewClientFromEnv: error loading .env file", errorTitel)
 	}
 	apiKey := os.Getenv("BYBIT_API_KEY")
 	if apiKey == "" {
-		log.Fatalf("%s: NewClientFromEnv: не указан BYBIT_API_KEY", errorTitel)
+		log.Fatalf("%s: NewClientFromEnv: BYBIT_API_KEY not specified", errorTitel)
 	}
 	apiSecret := os.Getenv("BYBIT_API_SECRET")
 	if apiSecret == "" {
-		log.Fatalf("%s: NewClientFromEnv: не указан BYBIT_API_SECRET", errorTitel)
+		log.Fatalf("%s: NewClientFromEnv: BYBIT_API_SECRET not specified", errorTitel)
 	}
 	return NewClient(apiKey, apiSecret, opts...)
 }
@@ -160,5 +160,6 @@ func (c *Client) callAPI(req httpx.RequestBuilder, queryString string, result an
 			return NewError(SerDeErrorT, err)
 		}
 	}
+
 	return nil
 }

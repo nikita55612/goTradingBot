@@ -70,6 +70,7 @@ func (b *SyncBuffer[T]) Read(limit int) []T {
 	limit = min(limit, n)
 	result := make([]T, limit, limit+1)
 	copy(result, b.buffer[n-limit:])
+
 	return result
 }
 
@@ -97,6 +98,5 @@ func (b *SyncBuffer[T]) Close() {
 
 	b.once.Do(func() {
 		close(b.ch)
-		b.buffer = nil
 	})
 }

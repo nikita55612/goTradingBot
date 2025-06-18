@@ -30,7 +30,7 @@ func ToCSV[V Number](path string, cols map[string][]V) error {
 	defer writer.Flush()
 	keys := slices.Collect(maps.Keys(cols))
 	if len(keys) == 0 {
-		return fmt.Errorf("SaveToCSV: отсутсвуют колонки для сохранения")
+		return fmt.Errorf("columns missing for saving")
 	}
 	err = writer.Write(keys)
 	if err != nil {
@@ -60,7 +60,7 @@ func ToCSV[V Number](path string, cols map[string][]V) error {
 // Возвращает ошибку если количество названий не совпадает с количеством столбцов.
 func ColumnsToCSV[V Number](path string, cols [][]V, headers []string) error {
 	if len(cols) == 0 {
-		return fmt.Errorf("SaveColumnsToCSV: отсутсвуют колонки для сохранения")
+		return fmt.Errorf("columns missing for saving")
 	}
 	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
 	if err != nil {
@@ -72,7 +72,7 @@ func ColumnsToCSV[V Number](path string, cols [][]V, headers []string) error {
 	if headers != nil {
 		if len(headers) != len(cols) {
 			return fmt.Errorf(
-				"SaveColumnsToCSV: количество заголовков (%d) не соответствует количеству столбцов (%d)",
+				"the number of headers (%d) does not match the number of columns (%d)",
 				len(headers),
 				len(cols),
 			)

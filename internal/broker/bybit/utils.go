@@ -5,7 +5,7 @@ import (
 	"strconv"
 
 	"github.com/nikita55612/goTradingBot/internal/broker/bybit/models"
-	"github.com/nikita55612/goTradingBot/internal/cdl"
+	"github.com/nikita55612/goTradingBot/internal/pkg/cdl"
 )
 
 // AsLocalInterval преобразует cdl.Interval в локальный формат интервала.
@@ -46,6 +46,7 @@ func candleStreamFromRawData(d *models.CandleStreamRawData) (*cdl.CandleStreamDa
 	if len(d.Data) == 0 {
 		return nil, fmt.Errorf("empty data")
 	}
+
 	data := d.Data[0]
 	rawData := [7]string{
 		strconv.FormatInt(data.End, 10),
@@ -64,6 +65,7 @@ func candleStreamFromRawData(d *models.CandleStreamRawData) (*cdl.CandleStreamDa
 	if err != nil {
 		return nil, err
 	}
+
 	return &cdl.CandleStreamData{
 		Interval: interval,
 		Confirm:  data.Confirm,
@@ -74,6 +76,7 @@ func candleStreamFromRawData(d *models.CandleStreamRawData) (*cdl.CandleStreamDa
 // extractCandleFromRawData преобразует массив сырых свечей в массив структурированных свечей
 func extractCandleFromResult(res *models.CandleResult) ([]cdl.Candle, error) {
 	candles := make([]cdl.Candle, len(res.List))
+
 	for i, v := range res.List {
 		candle, err := cdl.ParseCandleFromRawData(v)
 		if err != nil {
@@ -81,5 +84,6 @@ func extractCandleFromResult(res *models.CandleResult) ([]cdl.Candle, error) {
 		}
 		candles[i] = candle
 	}
+
 	return candles, nil
 }

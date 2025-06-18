@@ -31,12 +31,14 @@ func (e *Error) ServerResponseCode() int {
 	if !ok {
 		return 0
 	}
+
 	return err.code
 }
 
 func (e *Error) SetEndpoint(endpoint string) *Error {
 	newError := *e
 	newError.Endpoint = endpoint
+
 	return &newError
 }
 
@@ -44,6 +46,7 @@ func (e *Error) Error() string {
 	if e.Endpoint != "" {
 		return fmt.Sprintf("%s: %s: %s: %s", errorTitel, e.Endpoint, e.Type, e.Err)
 	}
+
 	return fmt.Sprintf("%s: %s: %s", errorTitel, e.Type, e.Err)
 }
 
@@ -57,6 +60,7 @@ func ErrorFromServerResponse(r *ServerResponse) *Error {
 		msg:  r.RetMsg,
 		code: r.RetCode,
 	}
+
 	return NewError(ServerResponseErrorT, err)
 }
 
@@ -68,6 +72,7 @@ func UnwrapServerResponse(r *ServerResponse) (*ServerResponse, error) {
 	if err := ErrorFromServerResponse(r).Err.(*serverResponseError); !err.IsSuccess() {
 		return r, NewError(ServerResponseErrorT, err)
 	}
+
 	return r, nil
 }
 

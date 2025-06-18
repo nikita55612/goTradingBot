@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/nikita55612/goTradingBot/internal/cdl"
+	"github.com/nikita55612/goTradingBot/internal/pkg/cdl"
 )
 
 type DataProvider interface {

@@ -21,16 +21,16 @@ func GetField[T any](obj any, fieldName string) (T, error) {
 	var zero T
 	val := reflect.ValueOf(obj)
 	if val.Kind() != reflect.Struct {
-		return zero, fmt.Errorf("GetField: переданный объект не является структурой")
+		return zero, fmt.Errorf("the passed object is not a structure")
 	}
 	field := val.FieldByName(fieldName)
 	if !field.IsValid() {
-		return zero, fmt.Errorf("GetField: поле '%s' не найдено в структуре", fieldName)
+		return zero, fmt.Errorf("field '%s' not found in structure", fieldName)
 	}
 	fieldValue, ok := field.Interface().(T)
 	if !ok {
 		return zero, fmt.Errorf(
-			"GetField: нельзя преобразовать поле '%s' (тип %T) в тип %T",
+			"cannot convert field '%s' (type %T) to type %T",
 			fieldName, field.Interface(), zero,
 		)
 	}

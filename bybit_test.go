@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/nikita55612/goTradingBot/internal/broker/bybit"
-	"github.com/nikita55612/goTradingBot/internal/cdl"
+	"github.com/nikita55612/goTradingBot/internal/pkg/cdl"
 )
 
 func TestGetInstrumentInfo(t *testing.T) {

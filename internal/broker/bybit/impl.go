@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	"github.com/nikita55612/goTradingBot/internal/broker"
-	"github.com/nikita55612/goTradingBot/internal/cdl"
+	"github.com/nikita55612/goTradingBot/internal/pkg/cdl"
 	"github.com/nikita55612/goTradingBot/internal/utils/numeric"
 )
 
@@ -23,6 +23,7 @@ func (b *BrokerImpl) GetInstrumentInfo(symbol string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	var minOrderAmt float64
 	var qtyPrecision int
 	if b.cli.category == "spot" {
@@ -48,6 +49,7 @@ func (b *BrokerImpl) GetInstrumentInfo(symbol string) ([]byte, error) {
 		}
 		qtyPrecision = numeric.DecimalPlaces(v)
 	}
+
 	tickSize, parseErr := strconv.ParseFloat(info.PriceFilter.TickSize, 64)
 	if parseErr != nil {
 		return nil, parseErr
@@ -57,6 +59,7 @@ func (b *BrokerImpl) GetInstrumentInfo(symbol string) ([]byte, error) {
 		"minOrderAmt":  minOrderAmt,
 		"tickSize":     tickSize,
 	}
+
 	return json.Marshal(infoData)
 }
 
@@ -136,5 +139,6 @@ func (b *BrokerImpl) GetOrder(orderId string) ([]byte, error) {
 		"createdAt": createdAt,
 		"updatedAt": updatedAt,
 	}
+
 	return json.Marshal(orderData)
 }

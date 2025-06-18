@@ -11,8 +11,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/nikita55612/goTradingBot/internal/broker/bybit/models"
-	"github.com/nikita55612/goTradingBot/internal/cdl"
-	"github.com/nikita55612/goTradingBot/internal/ws"
+	"github.com/nikita55612/goTradingBot/internal/pkg/cdl"
+	"github.com/nikita55612/goTradingBot/internal/pkg/ws"
 	"github.com/nikita55612/httpx"
 )
 
@@ -23,13 +23,13 @@ func (c *Client) GetInstrumentInfo(symbol string) (*models.InstrumentInfo, error
 	query.Set("category", c.category)
 	query.Set("symbol", symbol)
 	queryString := query.Encode()
-	fullURL := fmt.Sprintf(
+	path := fmt.Sprintf(
 		"%s%s?%s",
 		c.baseURL,
 		"/v5/market/instruments-info",
 		queryString,
 	)
-	req := httpx.Get(fullURL)
+	req := httpx.Get(path)
 	var instrumentInfoResult models.InstrumentInfoResult
 	if err := c.callAPI(req, queryString, &instrumentInfoResult); err != nil {
 		return nil, err.(*Error).SetEndpoint("GetInstrumentInfo")
@@ -38,6 +38,7 @@ func (c *Client) GetInstrumentInfo(symbol string) (*models.InstrumentInfo, error
 	if len(instrumentInfoResult.List) > 0 {
 		instrumentInfo = instrumentInfoResult.List[0]
 	}
+
 	return &instrumentInfo, nil
 }
 
@@ -53,10 +54,12 @@ func (c *Client) GetCandles(symbol string, interval cdl.Interval, limit int) ([]
 	if err != nil {
 		return nil, err
 	}
+
 	candles, extractErr := extractCandleFromResult(res)
 	if extractErr != nil {
 		return candles, extractErr
 	}
+
 	counter := limit - 1000
 	for counter > 0 {
 		nextLimit := min(1000, counter)
@@ -78,6 +81,7 @@ func (c *Client) GetCandles(symbol string, interval cdl.Interval, limit int) ([]
 		}
 	}
 	slices.Reverse(candles)
+
 	return candles, nil
 }
 
@@ -97,9 +101,10 @@ func (c *Client) CandleStream(ctx context.Context, symbol string, interval cdl.I
 		ws.WithHandshake(handshakeMessage),
 	)
 	if err != nil {
-		err = fmt.Errorf("не удалось создать websocket подключение: %w", err)
+		err = fmt.Errorf("failed to create websocket connection: %w", err)
 		return nil, NewError(InternalErrorT, err).SetEndpoint("CandleStream")
 	}
+
 	stream := make(chan *cdl.CandleStreamData)
 	go func() {
 		for {
@@ -119,27 +124,32 @@ func (c *Client) CandleStream(ctx context.Context, symbol string, interval cdl.I
 				select {
 				case stream <- candleStreamData:
 				case <-time.After(time.Second):
+					if candleStreamData.Confirm {
+						stream <- candleStreamData
+					}
 				}
 
 			}
 		}
 	}()
+
 	return stream, nil
 }
 
 // getCandles выполняет запрос исторических данных свечей
 func (c *Client) getCandle(query url.Values) (*models.CandleResult, *Error) {
 	queryString := query.Encode()
-	fullURL := fmt.Sprintf(
+	path := fmt.Sprintf(
 		"%s%s?%s",
 		c.baseURL,
 		"/v5/market/kline",
 		queryString,
 	)
-	req := httpx.Get(fullURL)
+	req := httpx.Get(path)
 	var candleResult models.CandleResult
 	if err := c.callAPI(req, queryString, &candleResult); err != nil {
 		return &candleResult, err.(*Error).SetEndpoint("getCandle")
 	}
+
 	return &candleResult, nil
 }

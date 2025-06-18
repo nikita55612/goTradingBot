@@ -3,7 +3,7 @@ package broker
 import (
 	"context"
 
-	"github.com/nikita55612/goTradingBot/internal/cdl"
+	"github.com/nikita55612/goTradingBot/internal/pkg/cdl"
 )
 
 type Broker interface {
