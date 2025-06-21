@@ -3,3 +3,4 @@ neuralab/venv/
 .DS_Store
 .log
 .db
+config.json
