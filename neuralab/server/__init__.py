@@ -23,6 +23,6 @@ def run(host: str, port: int):
     )
 
 	def on_start(_): return print(
-        f'Neuralab servis running on http://{host}:{port}')
+        f'neuralab servis running on http://{host}:{port}')
 
 	web.run_app(app, host=host, port=port, print=on_start)
