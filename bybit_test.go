@@ -31,6 +31,16 @@ func TestGetCandles(t *testing.T) {
 	fmt.Println(string(data))
 }
 
+func TestGetAccountInfo(t *testing.T) {
+	cli := bybit.NewClientFromEnv(bybit.WithCategory("linear"))
+	accountInfo, err := cli.GetAccountInfo()
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, _ := json.MarshalIndent(accountInfo, "", "    ")
+	fmt.Println(string(data))
+}
+
 func TestCandleStream(t *testing.T) {
 	cli := bybit.NewClientFromEnv(bybit.WithCategory("linear"))
 	ctx, cancel := context.WithCancel(context.Background())

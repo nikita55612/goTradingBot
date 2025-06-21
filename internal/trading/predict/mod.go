@@ -36,11 +36,9 @@ type TrendPredictor struct {
 	interval    cdl.Interval
 	model1      string
 	model2      string
-	model3      string
 	trendZone   []cdl.Candle
 	trendBuffer []float64
-	ltzfBuffer  []float64
-	stzfBuffer  []float64
+	tzfBuffer   []float64
 	lastUpdTime int64
 }
 
@@ -49,8 +47,7 @@ func NewTrendPredictor(interval cdl.Interval) *TrendPredictor {
 	return &TrendPredictor{
 		interval:    interval,
 		model1:      "PT-" + intervalString,
-		model2:      "LNTZS-" + intervalString,
-		model3:      "SNTZS-" + intervalString,
+		model2:      "NTZS-" + intervalString,
 		trendBuffer: make([]float64, 0, tpTBS),
 	}
 }
@@ -95,9 +92,7 @@ func (p *TrendPredictor) Init(candles []cdl.Candle) error {
 	if err != nil {
 		return err
 	}
-	fParts := p.genTZoneFeatures(candles, trendPreds)
-	p.ltzfBuffer = fParts[0]
-	p.stzfBuffer = fParts[1]
+	p.tzfBuffer = p.genTZoneFeatures(candles, trendPreds)
 
 	p.appendTrendBuffer(trendPreds...)
 	p.updateTrendZone(candles)
@@ -147,20 +142,11 @@ func (p *TrendPredictor) GetNextPrediction(candles []cdl.Candle) ([2]float64, er
 	np := len(p.trendBuffer)
 	if (p.trendBuffer[np-2] > .5) != (p.trendBuffer[np-1] > .5) {
 		f := p.genNextTZoneFeatures(p.trendZone)
-		var model string
-		features := make([][]float64, 1)
-		if p.trendBuffer[np-2] > .5 {
-			copy(p.ltzfBuffer, p.ltzfBuffer[tzNF:])
-			copy(p.ltzfBuffer[tzNF*(tzLB-1):], f)
-			features[0] = p.stzfBuffer
-			model = p.model3
-		} else {
-			copy(p.stzfBuffer, p.stzfBuffer[tzNF:])
-			copy(p.stzfBuffer[tzNF*(tzLB-1):], f)
-			features[0] = p.ltzfBuffer
-			model = p.model2
-		}
-		pred, err := pyapp.GetPrediction(features, model).Unwrap()
+		copy(p.tzfBuffer, p.tzfBuffer[tzNF:])
+		copy(p.tzfBuffer[tzNF*(tzLB-1):], f)
+
+		features := [][]float64{p.tzfBuffer}
+		pred, err := pyapp.GetPrediction(features, p.model2).Unwrap()
 		if err == nil || len(pred) != 0 {
 			prediction[1] = pred[0]
 		}
@@ -207,31 +193,23 @@ func (p *TrendPredictor) genNextTZoneFeatures(candles []cdl.Candle) []float64 {
 	return f
 }
 
-func (p *TrendPredictor) genTZoneFeatures(candles []cdl.Candle, trend []float64) [2][]float64 {
+func (p *TrendPredictor) genTZoneFeatures(candles []cdl.Candle, trend []float64) []float64 {
 	nt := len(trend)
 	candles = candles[len(candles)-nt:]
-	lf, sf := [][]float64{}, [][]float64{}
-	lfb := make([]float64, tzNF*tzLB)
-	sfb := make([]float64, tzNF*tzLB)
+	fS := [][]float64{}
+	fB := make([]float64, tzNF*tzLB)
 
 	var st int
 	for i := 1; i < nt; i++ {
-		prevTrend := trend[i-1] > .5
-		if prevTrend == (trend[i] > .5) {
+		if (trend[i-1] > .5) == (trend[i] > .5) {
 			continue
 		}
 		f := p.genNextTZoneFeatures(candles[st : i+1])
-		if prevTrend {
-			copy(lfb, lfb[tzNF:])
-			copy(lfb[tzNF*(tzLB-1):], f)
-			lf = append(lf, slices.Clone(lfb))
-		} else {
-			copy(sfb, sfb[tzNF:])
-			copy(sfb[tzNF*(tzLB-1):], f)
-			sf = append(sf, slices.Clone(sfb))
-		}
+		copy(fB, fB[tzNF:])
+		copy(fB[tzNF*(tzLB-1):], f)
+		fS = append(fS, slices.Clone(fB))
 		st = i
 	}
 
-	return [2][]float64{lf[len(lf)-1], sf[len(sf)-1]}
+	return fS[len(fS)-1]
 }

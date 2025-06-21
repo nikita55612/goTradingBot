@@ -2,62 +2,143 @@ package main
 
 import (
 	"context"
+	"encoding/json"
+	"flag"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
 	"github.com/nikita55612/goTradingBot/internal/broker/bybit"
-	"github.com/nikita55612/goTradingBot/internal/pkg/cdl"
 	"github.com/nikita55612/goTradingBot/internal/trading"
 	"github.com/nikita55612/goTradingBot/internal/trading/predict/pyapp"
 	"github.com/nikita55612/goTradingBot/internal/trading/strategies"
+	"github.com/nikita55612/goTradingBot/internal/utils/slogx"
 )
 
+var logo = []byte{0xa, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x5f, 0x5f, 0x5f, 0x5f, 0x5f, 0x5f, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x5f, 0x5f, 0x5f, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x5f, 0x5f, 0x5f, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x5f, 0x5f, 0xa, 0x20, 0x20, 0x5f, 0x5f, 0x5f, 0x20, 0x5f, 0x5f, 0x5f, 0x5f, 0x2f, 0x5f, 0x20, 0x20, 0x5f, 0x5f, 0x2f, 0x5f, 0x5f, 0x5f, 0x5f, 0x5f, 0x5f, 0x20, 0x5f, 0x5f, 0x5f, 0x5f, 0x2f, 0x20, 0x28, 0x5f, 0x29, 0x5f, 0x5f, 0x20, 0x20, 0x5f, 0x5f, 0x5f, 0x20, 0x5f, 0x2f, 0x20, 0x5f, 0x20, 0x29, 0x5f, 0x5f, 0x5f, 0x20, 0x20, 0x2f, 0x20, 0x2f, 0x5f, 0xa, 0x20, 0x2f, 0x20, 0x5f, 0x20, 0x60, 0x2f, 0x20, 0x5f, 0x20, 0x5c, 0x2f, 0x20, 0x2f, 0x20, 0x2f, 0x20, 0x5f, 0x5f, 0x2f, 0x20, 0x5f, 0x20, 0x60, 0x2f, 0x20, 0x5f, 0x20, 0x20, 0x2f, 0x20, 0x2f, 0x20, 0x5f, 0x20, 0x5c, 0x2f, 0x20, 0x5f, 0x20, 0x60, 0x2f, 0x20, 0x5f, 0x20, 0x20, 0x2f, 0x20, 0x5f, 0x20, 0x5c, 0x2f, 0x20, 0x5f, 0x5f, 0x2f, 0xa, 0x20, 0x5c, 0x5f, 0x2c, 0x20, 0x2f, 0x5c, 0x5f, 0x5f, 0x5f, 0x2f, 0x5f, 0x2f, 0x20, 0x2f, 0x5f, 0x2f, 0x20, 0x20, 0x5c, 0x5f, 0x2c, 0x5f, 0x2f, 0x5c, 0x5f, 0x2c, 0x5f, 0x2f, 0x5f, 0x2f, 0x5f, 0x2f, 0x2f, 0x5f, 0x2f, 0x5c, 0x5f, 0x2c, 0x20, 0x2f, 0x5f, 0x5f, 0x5f, 0x5f, 0x2f, 0x5c, 0x5f, 0x5f, 0x5f, 0x2f, 0x5c, 0x5f, 0x5f, 0x2f, 0xa, 0x2f, 0x5f, 0x5f, 0x5f, 0x2f, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x2f, 0x5f, 0x5f, 0x5f, 0x2f, 0xa}
+
 func main() {
-	ctx, cancel := context.WithCancel(context.Background())
-	ctx, stop := signal.NotifyContext(ctx,
+	fmt.Println("\033[36m" + string(logo) + "\033[0m")
+
+	configPath := flag.String(
+		"config",
+		trading.DefaultTradingBotConfigPath,
+		"path to configuration file",
+	)
+	flag.Parse()
+
+	_, err := os.Stat(*configPath)
+	if os.IsNotExist(err) {
+		if *configPath == trading.DefaultTradingBotConfigPath {
+			defaultTradingBotConfig := trading.DefaultTradingBotConfig()
+			data, _ := json.MarshalIndent(&defaultTradingBotConfig, "", "    ")
+			err := os.WriteFile(*configPath, data, 0644)
+			if err != nil {
+				panic(err)
+			}
+			absConfigPath, err := filepath.Abs(*configPath)
+			if err != nil {
+				panic(err)
+			}
+			fmt.Printf(
+				"default configuration is initialized: %s\n",
+				absConfigPath,
+			)
+			fmt.Println("adjust the configuration and run again.")
+			return
+		} else {
+			panic(err)
+		}
+	}
+
+	ctx, stop := signal.NotifyContext(
+		context.Background(),
 		os.Interrupt,
 		syscall.SIGTERM,
 	)
-	defer cancel()
+
 	defer stop()
 
-	pyapp.SetContext(ctx)
-	pyapp.Run()
+	if err := pyapp.Run(); err != nil {
+		panic(err)
+	}
+
+	defer func() {
+		pyapp.Stop()
+		time.Sleep(200 * time.Millisecond)
+	}()
+
+	config, err := trading.LoadTradingBotConfig(*configPath)
+	if err != nil {
+		panic(err)
+	}
+
+	logFile, err := os.OpenFile(".log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	if err != nil {
+		panic(err)
+	}
+	defer logFile.Close()
+
+	logger := slog.New(slogx.Fanout(
+		slog.NewJSONHandler(logFile, nil),
+		slog.NewJSONHandler(os.Stdout, nil),
+	))
 
 	cli := bybit.NewClientFromEnv(bybit.WithCategory("linear"))
-
-	tb := trading.NewTradingBot(ctx, cli.BrokerImpl())
-
-	strategy1 := strategies.NewTrendStrategy(
-		"BTCUSDT",
-		cdl.M5,
-		0,
-		0,
-		0,
-	)
-
-	strategy2 := strategies.NewTrendStrategy(
-		"HYPEUSDT",
-		cdl.M5,
-		0,
-		0,
-		0,
-	)
-
-	_, err := tb.AddStrategy(strategy1)
+	accountInfo, err := cli.GetAccountInfo()
 	if err != nil {
-		fmt.Println(err)
+		panic(err)
+	}
+	accountInfoData, _ := json.MarshalIndent(&accountInfo, "", "    ")
+	fmt.Println("accountInfo:", string(accountInfoData))
+
+	tb := trading.NewTradingBot(ctx, cli.BrokerImpl(), logger)
+
+	cfgData, _ := json.MarshalIndent(&config, "", "    ")
+	fmt.Println("config:", string(cfgData))
+
+	addedStrategyIDs := []string{}
+	for _, sc := range config.Strategies {
+		strategy, err := strategies.NewTrendStrategy(&sc)
+		if err != nil {
+			fmt.Printf("error creating strategy: %s\n", err)
+			continue
+		}
+		id, err := tb.AddStrategy(strategy)
+		if err != nil {
+			fmt.Printf("strategy initialization error: %s\n", err)
+			continue
+		}
+		addedStrategyIDs = append(addedStrategyIDs, id)
+	}
+
+	fmt.Printf(
+		"added %d strategies out of %d",
+		len(addedStrategyIDs),
+		len(config.Strategies),
+	)
+
+	if len(addedStrategyIDs) == 0 {
 		return
 	}
-	_, err = tb.AddStrategy(strategy2)
-	if err != nil {
-		fmt.Println(err)
-		return
+
+	time.Sleep(500 * time.Millisecond)
+	fmt.Println("launch strategies in:")
+	for i := 3; i > 0; i-- {
+		fmt.Println(i)
+		time.Sleep(time.Second)
+	}
+
+	for _, id := range addedStrategyIDs {
+		if err := tb.LaunchStrategy(id); err != nil {
+			fmt.Printf("strategy launch error: %s\n", err)
+		}
 	}
 
 	<-ctx.Done()
-	time.Sleep(time.Second)
+	time.Sleep(2 * time.Second)
 }

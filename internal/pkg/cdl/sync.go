@@ -100,6 +100,7 @@ func (s *CandleSync) Subscribe(ch chan<- *CandleStreamData) chan<- struct{} {
 	done := make(chan struct{}, 1)
 	id := uuid.NewString()
 	s.subscribers[id] = subscriber{ch: ch, done: done}
+
 	return done
 }
 
@@ -171,6 +172,7 @@ func (s *CandleSync) subMessenger() {
 // streamProcessor обрабатывает входящий поток свечей
 func (s *CandleSync) streamProcessor() {
 	defer s.close()
+
 	for data := range s.stream {
 		if data == nil {
 			continue
@@ -183,8 +185,8 @@ func (s *CandleSync) streamProcessor() {
 	}
 }
 
-// GetCandles возвращает последние свечи
-func (s *CandleSync) GetCandles(limit int) []Candle {
+// ReadConfirmCandles возвращает последние свечи
+func (s *CandleSync) ReadConfirmCandles(limit int) []Candle {
 	s.confirmWg.Wait()
 	return s.candles.Read(limit)
 }
@@ -197,6 +199,7 @@ func (s *CandleSync) close() {
 	s.candles.Close()
 	close(s.writeConfirm)
 	close(s.sendToSubs)
+
 	for key := range s.subscribers {
 		go s.removeSubscriber(key)
 	}

@@ -1,0 +1,15 @@
+{
+    "strategies": [
+        {
+            "symbol": "HYPEUSDT",
+            "interval": "M5",
+            "availableBalance": 16,
+            "longRatio": 0.5,
+            "martngaleRatios": [
+                1.2, 1.1
+            ],
+            "trendZoneFilter": 0.5,
+            "limitOrderOffset": 0.01
+        }
+    ]
+}

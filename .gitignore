@@ -1,3 +1,5 @@
 .env
 neuralab/venv/
 .DS_Store
+.log
+.db

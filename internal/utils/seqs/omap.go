@@ -35,6 +35,7 @@ func (om *OrderedMap[K, V]) Set(k K, v V) int {
 	}
 	om.m[k] = v
 	om.s = append(om.s, k)
+
 	return len(om.s) - 1
 }
 
@@ -54,6 +55,7 @@ func (om *OrderedMap[K, V]) Add(k K, v V) int {
 		om.s = append(om.s, k)
 	}
 	om.m[k] = v
+
 	return len(om.s) - 1
 }
 
@@ -63,6 +65,7 @@ func (om *OrderedMap[K, V]) Get(k K) (V, bool) {
 	defer om.mu.RUnlock()
 
 	v, ok := om.m[k]
+
 	return v, ok
 }
 
@@ -75,6 +78,7 @@ func (om *OrderedMap[K, V]) KeyByIndex(i int) (K, bool) {
 		var zero K
 		return zero, false
 	}
+
 	return om.s[i], true
 }
 
@@ -84,6 +88,7 @@ func (om *OrderedMap[K, V]) GetByIndex(i int) (V, bool) {
 		return om.Get(k)
 	}
 	var zero V
+
 	return zero, false
 }
 
@@ -108,6 +113,7 @@ func (om *OrderedMap[K, V]) Delete(k K) bool {
 		om.s = slices.Delete(om.s, i, i+1)
 		om.shrinkIfNeeded()
 	}
+
 	return true
 }
 
@@ -122,6 +128,7 @@ func (om *OrderedMap[K, V]) DeleteByIndex(i int) bool {
 	delete(om.m, om.s[i])
 	om.s = slices.Delete(om.s, i, i+1)
 	om.shrinkIfNeeded()
+
 	return true
 }
 
@@ -151,6 +158,7 @@ func (om *OrderedMap[K, V]) Values() []V {
 	for i, k := range om.s {
 		values[i] = om.m[k]
 	}
+
 	return values
 }
 
@@ -181,6 +189,7 @@ func (om *OrderedMap[K, V]) Clone() *OrderedMap[K, V] {
 		newMap.m[k] = v
 	}
 	newMap.s = slices.Clone(om.s)
+
 	return newMap
 }
 

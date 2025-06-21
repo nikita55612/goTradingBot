@@ -61,12 +61,16 @@ func (s *SubData) SubscribeChan(symbol string, interval cdl.Interval, ch chan<- 
 	return candleSync.Subscribe(ch), nil
 }
 
-func (s *SubData) GetCandles(symbol string, interval cdl.Interval, limit int) ([]cdl.Candle, error) {
+func (s *SubData) ReadConfirmCandles(symbol string, interval cdl.Interval, limit int) ([]cdl.Candle, error) {
 	candleSync, err := s.getCandleSync(symbol, interval)
 	if err != nil {
 		return nil, err
 	}
-	return candleSync.GetCandles(limit), nil
+	return candleSync.ReadConfirmCandles(limit), nil
+}
+
+func (s *SubData) GetCandles(symbol string, interval cdl.Interval, limit int) ([]cdl.Candle, error) {
+	return s.dataProvider.GetCandles(symbol, interval, limit)
 }
 
 func (s *SubData) GetInstrumentInfo(symbol string) (*InstrumentInfo, error) {

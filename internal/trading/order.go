@@ -61,6 +61,7 @@ func (o *Order) Clone() *Order {
 
 type OrderUpdate struct {
 	LinkId string `json:"linkId"`
+	Tag    string `json:"tag"`
 	Order  *Order `json:"order"`
 }
 
