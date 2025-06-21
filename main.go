@@ -24,6 +24,18 @@ var logo = []byte{0xa, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x2
 func main() {
 	fmt.Println("\033[36m" + string(logo) + "\033[0m")
 
+	ctx, stop := signal.NotifyContext(
+		context.Background(),
+		os.Interrupt,
+		syscall.SIGTERM,
+	)
+
+	defer func() {
+		<-ctx.Done()
+		stop()
+		time.Sleep(2 * time.Second)
+	}()
+
 	configPath := flag.String(
 		"config",
 		trading.DefaultTradingBotConfigPath,
@@ -54,14 +66,6 @@ func main() {
 			panic(err)
 		}
 	}
-
-	ctx, stop := signal.NotifyContext(
-		context.Background(),
-		os.Interrupt,
-		syscall.SIGTERM,
-	)
-
-	defer stop()
 
 	if err := pyapp.Run(); err != nil {
 		panic(err)
@@ -138,7 +142,4 @@ func main() {
 			fmt.Printf("strategy launch error: %s\n", err)
 		}
 	}
-
-	<-ctx.Done()
-	time.Sleep(2 * time.Second)
 }

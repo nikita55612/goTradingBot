@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"testing"
 	"time"
-
-	"github.com/nikita55612/goTradingBot/internal/broker/bybit"
 )
 
 func Test1(t *testing.T) {
-	cli := bybit.NewClientFromEnv()
-	ai, _ := cli.GetAccountInfo()
-	fmt.Println(ai)
+	var q string
+	fmt.Scan(&q)
+	if q == "q\n" {
+		fmt.Println("is q")
+	}
 	for i := 3; i > 0; i-- {
 		fmt.Println(i)
 		time.Sleep(time.Second)
