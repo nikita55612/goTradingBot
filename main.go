@@ -143,4 +143,6 @@ func main() {
 			fmt.Printf("strategy launch error: %s\n", err)
 		}
 	}
+
+	<-ctx.Done()
 }
