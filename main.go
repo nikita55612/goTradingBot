@@ -121,12 +121,13 @@ func main() {
 	}
 
 	fmt.Printf(
-		"added %d strategies out of %d",
+		"added %d strategies out of %d\n",
 		len(addedStrategyIDs),
 		len(config.Strategies),
 	)
 
 	if len(addedStrategyIDs) == 0 {
+		tb.Stop()
 		return
 	}
 
